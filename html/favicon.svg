@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CyberSpeed">
+  <rect width="512" height="512" rx="112" fill="#03080f"/>
+  <circle cx="256" cy="256" r="190" fill="none" stroke="#00ffe5" stroke-opacity="0.22" stroke-width="12"/>
+  <circle cx="256" cy="256" r="142" fill="none" stroke="#ff00ff" stroke-opacity="0.18" stroke-width="8"/>
+  <path d="M276 72 150 278h86l-34 162 160-248h-92z" fill="#00ffe5" stroke="#ff00ff" stroke-width="8" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>CYBER//SPEEDTEST // NEXUS HUD</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <canvas id="bg"></canvas>
+  <div class="starfield"></div>
+  <div class="scanlines"></div>
+  <div class="vignette"></div>
+
+  <div class="hud">
+    <!-- DEBUG -->
+    <div id="debug" style="position:fixed;bottom:8px;left:8px;z-index:999;font:11px/1.4 'Share Tech Mono',monospace;color:#5a7889;pointer-events:none;opacity:.8"></div>
+    <!-- TOP BAR -->
+    <header class="hud-top">
+      <div class="panel comms-panel">
+        <div class="p-head">COMMS</div>
+        <div class="comms-indicator">
+          <span class="dot r"></span><span class="dot r"></span><span class="dot"></span>
+        </div>
+      </div>
+      <div class="panel info-panel">
+        <div class="p-head">INFO</div>
+        <div class="info-lines">
+          <div>> contacts: <span id="contacts">AWAITING</span></div>
+          <div>> link: <span id="link-status" class="ok">READY</span></div>
+        </div>
+      </div>
+      <div class="panel clock-panel">
+        <div class="p-head">SYS.TIME</div>
+        <div class="mono" id="time">00 : 00 : 00</div>
+        <div class="date" id="date">2077.06.15</div>
+      </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="hud-main">
+      <!-- LEFT COLUMN -->
+      <aside class="col left-a">
+        <div class="block stat-block">
+          <div class="bk">PING</div>
+          <div class="v-lg cyan" id="ping">--</div>
+        </div>
+        <div class="block stat-block">
+          <div class="bk">JITTER</div>
+          <div class="v-lg warn" id="jitter">--</div>
+        </div>
+        <div class="block stat-block">
+          <div class="bk">PEAK DL</div>
+          <div class="v-lg cyan" id="peak">--</div>
+        </div>
+        <div class="block stat-block">
+          <div class="bk">PEAK UL</div>
+          <div class="v-lg magenta" id="peak-ul">--</div>
+        </div>
+        <div class="block mini-data">
+          <div class="bk">STREAM ID</div>
+          <div class="mono-sm" id="stream-id">---</div>
+          <div class="bk" style="margin-top:6px">PROTOCOL</div>
+          <div class="mono-sm">HTTPS/TLS1.3</div>
+        </div>
+      </aside>
+
+      <!-- CENTER -->
+      <section class="center-a">
+        <div class="viewport">
+          <!-- RETICLE -->
+          <svg class="reticle" viewBox="0 0 400 400">
+            <circle cx="200" cy="200" r="180" stroke="rgba(0,229,255,0.25)" stroke-width="1" fill="none"/>
+            <circle cx="200" cy="200" r="140" stroke="rgba(0,229,255,0.2)" stroke-width="1" fill="none" stroke-dasharray="2 4"/>
+            <circle cx="200" cy="200" r="100" stroke="rgba(0,229,255,0.15)" stroke-width="1" fill="none"/>
+            <line x1="200" y1="0" x2="200" y2="400" stroke="rgba(0,229,255,0.15)" stroke-width="1"/>
+            <line x1="0" y1="200" x2="400" y2="200" stroke="rgba(0,229,255,0.15)" stroke-width="1"/>
+            <circle cx="200" cy="200" r="4" fill="#00e5ff"/>
+          </svg>
+          <!-- CENTER DATA -->
+          <div class="reticle-data">
+          <div class="r-big" id="main">--</div>
+          <div class="r-big magenta" id="main-ul">--</div>
+          <div class="r-unit">MBIT/S</div>
+            <div class="r-sub bytes-hide" id="bytes-disp">0 MB / 25 MB</div>
+          </div>
+          <!-- TUNNEL CANVAS -->
+          <canvas id="tunnel" class="tunnel"></canvas>
+        </div>
+
+        <!-- WAVEFORM -->
+        <div class="wave-panel" id="wave-panel">
+          <canvas id="wave" height="80"></canvas>
+          <div class="wave-inf">
+            <span class="live"></span>
+            <span class="mono-xs" id="scope-v">0.00 MBIT/S</span>
+          </div>
+        </div>
+
+        <!-- RUN BUTTON -->
+        <button class="run-btn" id="run">
+          <span class="chevron">&#9656;</span>
+          <span class="lbl" id="run-lbl">INITIALIZE LINK</span>
+        </button>
+      </section>
+
+      <!-- RIGHT COLUMN -->
+      <aside class="col right-a">
+        <div class="block sys-block">
+          <div class="bk">SYSTEMS</div>
+          <div class="bar-item">
+            <span>DL</span>
+            <div class="bar"><div class="fill cyan" id="b-eng" style="width:0%"></div></div>
+          </div>
+          <div class="bar-item">
+            <span>UL</span>
+            <div class="bar"><div class="fill magenta" id="b-ul" style="width:0%"></div></div>
+          </div>
+          <div class="bar-item">
+            <span>SIG</span>
+            <div class="bar"><div class="fill cyan" id="b-sys" style="width:0%"></div></div>
+          </div>
+          <div class="bar-item">
+            <span>JIT</span>
+            <div class="bar"><div class="fill cyan" id="b-wpn" style="width:0%"></div></div>
+          </div>
+          <div class="bar-item">
+            <span>QLTY</span>
+            <div class="bar"><div class="fill magenta" id="b-fuel" style="width:0%"></div></div>
+          </div>
+        </div>
+<div class="block nav-block">
+           <div class="bk">NAVIGATION</div>
+           <div class="kv"><span>SYS</span><strong id="geo-country">---</strong></div>
+           <div class="kv"><span>CITY</span><strong id="geo-city">---</strong></div>
+           <div class="kv"><span>ISP</span><strong id="geo-org">---</strong></div>
+           <div class="kv mono"><span>IPv4</span><strong id="geo-ip4">---</strong></div>
+           <div class="kv mono"><span>IPv6</span><strong id="geo-ip6">---</strong></div>
+           <div class="kv mono"><span>ASN</span><strong id="geo-asn">---</strong></div>
+           <div class="kv mono"><span>COORD</span><strong id="geo-coord">---</strong></div>
+         </div>
+        <div class="block gauge-block combo">
+          <div class="gauge-row">
+            <div class="circular-gauge">
+              <svg viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="50" stroke="rgba(0,229,255,0.2)" stroke-width="8" fill="none"/>
+                <circle cx="60" cy="60" r="50" stroke="#00e5ff" stroke-width="8" fill="none"
+                        stroke-dasharray="314" stroke-dashoffset="314" id="gauge-ring" transform="rotate(-90 60 60)"/>
+              </svg>
+              <div class="gauge-val" id="gauge-pct">0%</div>
+              <div class="gauge-lbl">DL</div>
+            </div>
+            <div class="circular-gauge">
+              <svg viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="50" stroke="rgba(255,0,255,0.2)" stroke-width="8" fill="none"/>
+                <circle cx="60" cy="60" r="50" stroke="#ff00ff" stroke-width="8" fill="none"
+                        stroke-dasharray="314" stroke-dashoffset="314" id="gauge-ring-ul" transform="rotate(-90 60 60)"/>
+              </svg>
+              <div class="gauge-val" id="gauge-pct-ul">0%</div>
+              <div class="gauge-lbl">UL</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    </main>
+  </div>
+
+  <script src="app.js?v=3"></script>
+</body>
+</html>

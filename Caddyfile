@@ -1,0 +1,80 @@
+{
+	https_port {$SELF_MASK_PORT}
+	default_bind 127.0.0.1
+	servers {
+		protocols h1 h2
+		listener_wrappers {
+			proxy_protocol {
+				allow 127.0.0.1/32
+			}
+			tls
+		}
+	}
+	auto_https disable_redirects
+	admin off
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 10MB
+			roll_keep 5
+			roll_keep_for 720h
+		}
+		level ERROR
+		format json
+	}
+}
+
+http://{$SELF_MASK_DOMAIN} {
+	bind 0.0.0.0
+	redir https://{$SELF_MASK_DOMAIN}{uri} permanent
+	log {
+		output file /var/log/caddy/redirect.log {
+			roll_size 5MB
+			roll_keep 3
+			roll_keep_for 168h
+		}
+	}
+}
+
+https://{$SELF_MASK_DOMAIN} {
+	encode gzip
+	header {
+		-Server
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		X-XSS-Protection "1; mode=block"
+	}
+
+	handle /upload* {
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	handle {
+		root * /var/www/html
+		try_files {path} /index.html
+		header Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+		file_server
+	}
+
+	tls /etc/caddy/ssl/fullchain.crt /etc/caddy/ssl/private.key
+
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 10MB
+			roll_keep 5
+			roll_keep_for 720h
+		}
+		level ERROR
+	}
+}
+
+:{$SELF_MASK_PORT} {
+	tls internal
+	respond 204
+	log off
+}
+
+:80 {
+	bind 0.0.0.0
+	respond 204
+	log off
+}
