@@ -44,6 +44,10 @@ https://{$SELF_MASK_DOMAIN} {
 		X-XSS-Protection "1; mode=block"
 	}
 
+	handle /download* {
+		reverse_proxy 127.0.0.1:8080
+	}
+
 	handle /upload* {
 		reverse_proxy 127.0.0.1:8080
 	}

@@ -47,15 +47,9 @@
 
   const setDebug = (msg) => { if (elDebug) elDebug.textContent = msg; };
 
-  const SPEED_URL = 'https://speed.cloudflare.com/__down?bytes=25000000';
-  const FALLBACK_URL = 'https://cachefly.cachefly.net/10mb.test';
+  const DL_URL = 'https://dza.mooo.com/download';
   const UL_URL = 'https://dza.mooo.com/upload';
-  const UL_URLS = [
-    { url: UL_URL, name: 'DZA' },
-    { url: 'https://speedtest.tele2.net/upload.php', name: 'TELE2' },
-    { url: 'https://speedtest.t-mobile.cz/speedtest/upload.php', name: 'TMOBILE' },
-  ];
-  let UL_SIZE = 15 * 1024 * 1024;
+  const UL_SIZE = 15 * 1024 * 1024;
   let busy = false;
   let pingStore = 0;
   let jitterStore = 0;
@@ -68,7 +62,6 @@
   let ulSamples = [];
   let ulPeak = 0;
   let ulEma = 0;
-  let ulPeakTrackingStarted = false;
   const UL_WINDOW_SEC = 2.0;
   const UL_EMA_ALPHA = 0.15;
 
@@ -344,8 +337,7 @@ const sid = Array.from({ length: 4 }, () =>
     if (elMain) elMain.textContent = '--';
     if (elBytes) elBytes.classList.remove('bytes-hide');
     const endpoints = [
-      { url: SPEED_URL, name: 'CLOUDFLARE' },
-      { url: FALLBACK_URL, name: 'CACHEFLY' },
+      { url: DL_URL, name: 'DZA' },
     ];
 
     for (const ep of endpoints) {
@@ -412,7 +404,6 @@ const sid = Array.from({ length: 4 }, () =>
           elPeak.textContent = peak.toFixed(2);
           samples.push(mbps);
         }
-        if (t > 0 && t < 18) await wait(30);
       }
 
       if (timedOut) continue;
@@ -464,7 +455,7 @@ async function runUL() {
      const payload = new Uint8Array(UL_SIZE);
      return new Promise((resolve, reject) => {
        const xhr = new XMLHttpRequest();
-       xhr.open('POST', UL_URL, true);
+        xhr.open('POST', UL_URL, true);
        xhr.setRequestHeader('Content-Type', 'application/octet-stream');
 
         const start = performance.now();
@@ -598,7 +589,7 @@ if (elPeakUl) elPeakUl.textContent = '--';
     elPing.textContent = '--';
     elJitter.textContent = '--';
     elPeak.textContent = '--';
-    elBytes.textContent = '0 MB / 10 MB';
+    elBytes.textContent = '0 MB / 25 MB';
     if (elBarDl) setBar(elBarDl, 0);
     if (elBarSig) setBar(elBarSig, 0);
     if (elBarJit) setBar(elBarJit, 0);
