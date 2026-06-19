@@ -49,7 +49,7 @@
 
   const DL_URL = 'https://dza.mooo.com/download';
   const UL_URL = 'https://dza.mooo.com/upload';
-  const UL_SIZE = 15 * 1024 * 1024;
+  const UL_SIZE = 25 * 1024 * 1024;
   let busy = false;
   let pingStore = 0;
   let jitterStore = 0;
@@ -442,135 +442,116 @@ const sid = Array.from({ length: 4 }, () =>
   }
 
 async function runUL() {
-     console.log('[UL] runUL called');
-     if (elMainUl) elMainUl.textContent = '--';
-     if (elMain) elMain.textContent = dlLast || '0.00';
-     if (elPeakUl) elPeakUl.textContent = '--';
-     if (elBarUl) setBar(elBarUl, 0);
-     ulSamples.length = 0;
-     ulEma = 0;
-     ulPeak = 0;
-    if (elBytes) elBytes.classList.remove('bytes-hide');
+  console.log('[UL] runUL called');
+  if (elMainUl) elMainUl.textContent = '--';
+  if (elMain) elMain.textContent = dlLast || '0.00';
+  if (elPeakUl) elPeakUl.textContent = '--';
+  if (elBarUl) setBar(elBarUl, 0);
+  ulSamples.length = 0;
+  ulEma = 0;
+  ulPeak = 0;
+  if (elBytes) elBytes.classList.remove('bytes-hide');
 
-     const payload = new Uint8Array(UL_SIZE);
-     return new Promise((resolve, reject) => {
-       const xhr = new XMLHttpRequest();
-        xhr.open('POST', UL_URL, true);
-       xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+  const payload = new Uint8Array(UL_SIZE);
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', UL_URL, true);
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream');
 
-        const start = performance.now();
-        let timedOut = false;
+    const start = performance.now();
+    let timedOut = false;
+    let settled = false;
+    let lastLoaded = 0;
+    let lastTime = start;
+    const settle = (fn) => () => { if (!settled) { settled = true; fn(); } };
 
-        let settled = false;
-        const settle = (fn) => () => { if (!settled) { settled = true; fn(); } };
-        let ulLastLoaded = 0;
-        let ulLastTime = performance.now();
+    xhr.upload.onprogress = (e) => {
+      if (!e.lengthComputable) return;
+      const now = performance.now();
+      const loaded = e.loaded;
+      lastLoaded = loaded;
+      lastTime = now;
 
-         xhr.upload.onprogress = (e) => {
-           if (!e.lengthComputable) return;
-           const now = performance.now();
-           const loaded = e.loaded;
-           if (elBarUl) setBar(elBarUl, loaded / UL_SIZE * 100);
-           const progress = Math.min(100, (loaded / UL_SIZE) * 100);
-           setGauge(progress, elGaugeRingUl, elGaugePctUl);
-             if (elBytes) elBytes.textContent = (loaded / 1e6).toFixed(1) + ' MB / ' + (UL_SIZE / (1024 * 1024)).toFixed(0) + ' MB';
+      if (elBarUl) setBar(elBarUl, loaded / UL_SIZE * 100);
+      const progress = Math.min(100, (loaded / UL_SIZE) * 100);
+      setGauge(progress, elGaugeRingUl, elGaugePctUl);
+      if (elBytes) elBytes.textContent = (loaded / 1e6).toFixed(1) + ' MB / ' + (UL_SIZE / (1024 * 1024)).toFixed(0) + ' MB';
 
-             const dt = (now - ulLastTime) / 1000;
-             if (dt > 0.1 && loaded > ulLastLoaded) {
-               const db = loaded - ulLastLoaded;
-               if (db < 50 * 1024) {
-                 ulLastLoaded = loaded;
-                 ulLastTime = now;
-                 return;
-               }
-const mbps = (db * 8) / (dt * 1e6);
-                 if (Number.isFinite(mbps) && mbps > 0) {
-                   ulSamples.push({ t: now, v: mbps });
-                   console.log('[UL][raw]', mbps.toFixed(2), 'Mbps | dt', dt.toFixed(3), 's | db', db, 'bytes');
-                 }
-                  while (ulSamples.length && now - ulSamples[0].t > UL_WINDOW_SEC * 1000) ulSamples.shift();
-                  const windowAvg = ulSamples.length ? ulSamples.reduce((s, x) => s + x.v, 0) / ulSamples.length : 0;
-                  const raw = Number.isFinite(mbps) && mbps > 0 ? mbps : 0;
-                  ulEma = ulEma <= 0 ? raw : ulEma * (1 - UL_EMA_ALPHA) + raw * UL_EMA_ALPHA;
-                  const show = Number.isFinite(ulEma) && ulEma > 0 ? ulEma : windowAvg;
-                  if (show > ulPeak && elPeakUl) {
-                    ulPeak = show;
-                    elPeakUl.textContent = ulPeak.toFixed(2);
-                  }
-elMainUl.textContent = show.toFixed(2);
-                  if (elScopeV) elScopeV.textContent = show.toFixed(2) + ' MBIT/S';
-                  lastMb = show;
-                 if (ulSamples.length > 1) {
-                   const vals = ulSamples.map(x => x.v);
-                   const mn = Math.min(...vals);
-                   const mx = Math.max(...vals);
-                   console.log('[UL][win] len=' + ulSamples.length + ' avg=' + windowAvg.toFixed(2) + ' ema=' + show.toFixed(2) + ' min=' + mn.toFixed(2) + ' max=' + mx.toFixed(2));
-                 }
-                ulLastLoaded = loaded;
-                ulLastTime = now;
-              }
+      if (loaded >= UL_SIZE && !settled) {
+        console.log('[UL] upload complete via onprogress');
+        clearTimeout(timer);
+        settled = true;
+        const total = (now - start) / 1000;
+        const avgMbps = total > 0 ? (loaded * 8) / (total * 1e6) : 0;
+        elMainUl.textContent = avgMbps.toFixed(2);
+        elMain.textContent = dlLast || '0.00';
+        if (avgMbps > ulPeak && elPeakUl) {
+          ulPeak = avgMbps;
+          elPeakUl.textContent = ulPeak.toFixed(2);
+        }
+        if (elBytes) elBytes.classList.add('bytes-hide');
+        resolve(avgMbps);
+        return;
+      }
 
-if (loaded >= UL_SIZE && !settled) {
-              console.log('[UL] upload complete via onprogress', loaded, 'bytes, resolving without waiting for onload');
-              clearTimeout(timer);
-               settled = true;
-               if (elBytes) elBytes.classList.add('bytes-hide');
-               const finalAvg = ulSamples.length ? ulSamples.reduce((s, x) => s + x.v, 0) / ulSamples.length : 0;
-               // Update peak if final average is higher
-               if (finalAvg > ulPeak && elPeakUl) {
-                 ulPeak = finalAvg;
-                 elPeakUl.textContent = ulPeak.toFixed(2);
-               }
-              resolve(finalAvg);
-            }
-         };
+      const t = (now - start) / 1000;
+      if (t > 0.5) {
+        const mbps = (loaded * 8) / (t * 1e6);
+        const showSpeed = mbps > 0 && loaded > 100 * 1024;
+        if (showSpeed) {
+          if (elScopeV) elScopeV.textContent = mbps.toFixed(2) + ' MBIT/S';
+          lastMb = mbps;
+          elMainUl.textContent = mbps.toFixed(2);
+          if (mbps > ulPeak) {
+            ulPeak = mbps;
+            elPeakUl.textContent = ulPeak.toFixed(2);
+          }
+          console.log('[UL][raw]', mbps.toFixed(2), 'Mbps | loaded', loaded, '| t', t.toFixed(2), 's');
+        }
+      }
+    };
 
-       const timer = setTimeout(() => {
-         console.log('[UL] timer timeout, aborting');
-         timedOut = true;
-         xhr.abort();
-         settle(() => reject(new Error('UL_TIMEOUT')))();
-       }, 30000);
+    const timer = setTimeout(() => {
+      console.log('[UL] timer timeout, aborting');
+      timedOut = true;
+      xhr.abort();
+      settle(() => reject(new Error('UL_TIMEOUT')))();
+    }, 30000);
 
-xhr.onload = () => {
-           console.log('[UL] onload fired', 'status:', xhr.status, 'timedOut:', timedOut, 'settled already:', settled);
-           clearTimeout(timer);
-           if (settled) {
-             console.log('[UL] onload ignored, already resolved via onprogress');
-             return;
-           }
-           settled = true;
-           const total = (performance.now() - start) / 1000;
-           const avgMbps = total > 0 ? (UL_SIZE * 8) / (total * 1e6) : 0;
-           console.log('[UL] resolve via onload', avgMbps.toFixed(2));
-           // Update peak if computed average is higher
-           if (avgMbps > ulPeak && elPeakUl) {
-             ulPeak = avgMbps;
-             elPeakUl.textContent = ulPeak.toFixed(2);
-           }
-           elMainUl.textContent = avgMbps.toFixed(2);
-           elMain.textContent = dlLast || '0.00';
-           if (elBytes) elBytes.classList.add('bytes-hide');
-           resolve(avgMbps);
-         };
+    xhr.onload = () => {
+      console.log('[UL] onload fired', 'status:', xhr.status, 'timedOut:', timedOut, 'settled already:', settled);
+      clearTimeout(timer);
+      if (settled) {
+        console.log('[UL] onload ignored, already resolved via onprogress');
+        return;
+      }
+      settled = true;
+      const total = (lastTime - start) / 1000;
+      const avgMbps = total > 0 ? (lastLoaded * 8) / (total * 1e6) : 0;
+      console.log('[UL] resolve via onload (using last progress)', avgMbps.toFixed(2));
+      elMainUl.textContent = avgMbps.toFixed(2);
+      elMain.textContent = dlLast || '0.00';
+      if (elBytes) elBytes.classList.add('bytes-hide');
+      resolve(avgMbps);
+    };
 
-       xhr.onerror = () => {
-         console.log('[UL] onerror fired', 'settled:', settled);
-         clearTimeout(timer);
-       };
+    xhr.onerror = () => {
+      console.log('[UL] onerror fired', 'settled:', settled);
+      clearTimeout(timer);
+    };
 
-       xhr.onabort = () => {
-         console.log('[UL] onabort fired', 'timedOut:', timedOut, 'settled:', settled);
-         clearTimeout(timer);
-       };
+    xhr.onabort = () => {
+      console.log('[UL] onabort fired', 'timedOut:', timedOut, 'settled:', settled);
+      clearTimeout(timer);
+    };
 
-       xhr.onloadend = () => {
-         console.log('[UL] onloadend', 'timedOut:', timedOut, 'settled:', settled);
-       };
+    xhr.onloadend = () => {
+      console.log('[UL] onloadend', 'timedOut:', timedOut, 'settled:', settled);
+    };
 
-       xhr.send(payload);
-     });
-   }
+    xhr.send(payload);
+  });
+}
 
   /* run */
   btnRun.addEventListener('click', async () => {
