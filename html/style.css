@@ -100,7 +100,7 @@ html, body {
 
 @media (min-width: 860px) {
   .hud-top {
-    grid-template-columns: 200px 1fr 260px;
+    grid-template-columns: 200px 1fr 240px;
   }
 }
 
@@ -171,8 +171,52 @@ html, body {
 .hud-main {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1rem;
+  gap: .8rem;
   flex: 1;
+}
+
+@media (max-width: 1019px) {
+  .left-a { 
+    order: 2; 
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .5rem;
+  }
+  .center-a { 
+    order: 1; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .5rem;
+  }
+  .right-a { 
+    order: 3; 
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .5rem;
+  }
+  .right-a .sys-block { grid-column: 1 / -1; }
+  .right-a .nav-block { grid-column: 1 / -1; }
+  .gauge-block.combo { grid-column: 1 / -1; }
+  .viewport {
+    width: min(500px, 88vw);
+    height: min(300px, 45vh);
+  }
+  .block {
+    padding: .65rem .8rem;
+  }
+  .hud {
+    gap: .6rem;
+    padding: .8rem;
+  }
+  .hud-top {
+    gap: .5rem;
+  }
+  .run-btn {
+    margin: .6rem auto 0;
+    padding: .7rem 1.6rem;
+    font-size: .9rem;
+  }
 }
 
 @media (min-width: 1020px) {
@@ -337,21 +381,6 @@ html, body {
 }
 
 /* WAVE */
-.wave-panel {
-  background: rgba(0, 0, 0, .45);
-  border: 1px solid rgba(0, 229, 255, .25);
-  margin-top: .8rem;
-  padding: .4rem;
-  position: relative;
-  box-shadow: 0 0 25px rgba(0, 229, 255, .08);
-  transition: background .3s, border-color .3s;
-}
-
-.wave-panel.wave-live {
-  border-color: rgba(0, 255, 229, .75);
-  box-shadow: 0 0 40px rgba(0, 255, 229, .25);
-  background: rgba(0, 229, 199, .08);
-}
 
 #wave {
   width: 100%;
