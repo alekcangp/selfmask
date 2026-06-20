@@ -1,6 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CyberSpeed">
-  <rect width="512" height="512" rx="112" fill="#03080f"/>
-  <circle cx="256" cy="256" r="190" fill="none" stroke="#00ffe5" stroke-opacity="0.22" stroke-width="12"/>
-  <circle cx="256" cy="256" r="142" fill="none" stroke="#ff00ff" stroke-opacity="0.18" stroke-width="8"/>
-  <path d="M276 72 150 278h86l-34 162 160-248h-92z" fill="#00ffe5" stroke="#ff00ff" stroke-width="8" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="ПЛЮК HUD">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="42%" r="65%">
+      <stop offset="0%" stop-color="#3b230f"/>
+      <stop offset="100%" stop-color="#120a05"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#g)"/>
+  <circle cx="256" cy="256" r="190" fill="none" stroke="#ffb347" stroke-opacity="0.32" stroke-width="12"/>
+  <circle cx="256" cy="256" r="142" fill="none" stroke="#ff5b38" stroke-opacity="0.28" stroke-width="8"/>
+  <path d="M278 72 150 278h86l-34 162 160-248h-92z" fill="#ffb347" stroke="#ff5b38" stroke-width="8" stroke-linejoin="round"/>
+  <text x="256" y="284" text-anchor="middle" font-family="Impact, sans-serif" font-size="92" fill="#f0d7a3" letter-spacing="8">КУ</text>
 </svg>

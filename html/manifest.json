@@ -1,11 +1,11 @@
 {
-  "name": "CyberSpeed",
-  "short_name": "SpeedTest",
-  "description": "Cyber Speed Test",
+  "name": "ПЛЮК SpeedTest HUD",
+  "short_name": "ПЛЮК HUD",
+  "description": "Постапокалиптический ретрофутуристический интерфейс для проверки скорости",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#03080f",
-  "theme_color": "#00ffe5",
+  "background_color": "#120a05",
+  "theme_color": "#ffb347",
   "icons": [
     {
       "src": "/favicon.svg",

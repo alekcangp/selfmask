@@ -1,153 +1,190 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>CYBER//SPEEDTEST // NEXUS HUD</title>
+  <title>ПЛЮК // СКОРОСТНОЙ HUD</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="/icon-192.png" />
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <canvas id="bg"></canvas>
-  <div class="starfield"></div>
-  <div class="scanlines"></div>
-  <div class="vignette"></div>
+  <canvas id="bg" aria-hidden="true"></canvas>
+  <div class="pluk-sky" aria-hidden="true"></div>
+  <div class="crt" aria-hidden="true">
+    <div class="crt-vignette"></div>
+    <div class="crt-scan"></div>
+    <div class="crt-noise"></div>
+    <div class="crt-burn"></div>
+  </div>
 
   <div class="hud">
-    <!-- DEBUG -->
-    <div id="debug" style="position:fixed;bottom:8px;left:8px;z-index:999;font:11px/1.4 'Share Tech Mono',monospace;color:#5a7889;pointer-events:none;opacity:.8"></div>
-    <!-- TOP BAR -->
+    <div id="debug" class="debug" aria-hidden="true"></div>
+
     <header class="hud-top">
       <div class="panel comms-panel">
-        <div class="p-head">COMMS</div>
-        <div class="comms-indicator">
-          <span class="dot r"></span><span class="dot r"></span><span class="dot"></span>
+        <div class="p-head"><span class="alien">⏣</span> COMMS / КУ</div>
+        <div class="lamp-row">
+          <span class="lamp red on"></span>
+          <span class="lamp amber"></span>
+          <span class="lamp bone"></span>
+          <span class="lamp red"></span>
         </div>
+        <div class="antenna"><span></span><span></span><span></span></div>
       </div>
+
       <div class="panel info-panel">
-        <div class="p-head">INFO</div>
+        <div class="p-head"><span class="alien">▱</span> INFO / ПАТРУЛЬНЫЙ КАНАЛ</div>
         <div class="info-lines">
           <div>> contacts: <span id="contacts">AWAITING</span></div>
           <div>> link: <span id="link-status" class="ok">READY</span></div>
         </div>
       </div>
+
       <div class="panel clock-panel">
-        <div class="p-head">SYS.TIME</div>
+        <div class="p-head"><span class="alien">◬</span> SYS.TIME</div>
         <div class="mono" id="time">00 : 00 : 00</div>
         <div class="date" id="date">2077.06.15</div>
       </div>
     </header>
 
-    <!-- MAIN -->
     <main class="hud-main">
-      <!-- LEFT COLUMN -->
       <aside class="col left-a">
-        <div class="block stat-block">
-          <div class="bk">PING</div>
+        <section class="block stat-block">
+          <div class="bk">PING / ЭХО</div>
           <div class="v-lg cyan" id="ping">--</div>
-        </div>
-        <div class="block stat-block">
-          <div class="bk">JITTER</div>
+          <div class="micro-label">ms / радиолокационный ответ</div>
+        </section>
+
+        <section class="block stat-block">
+          <div class="bk">JITTER / ТРЯСКА</div>
           <div class="v-lg warn" id="jitter">--</div>
-        </div>
-        <div class="block stat-block">
-          <div class="bk">PEAK DL</div>
+          <div class="micro-label">ms / нестабильность пустынного кабеля</div>
+        </section>
+
+        <section class="block stat-block">
+          <div class="bk">PEAK DL / МАКС</div>
           <div class="v-lg cyan" id="peak">--</div>
-        </div>
-        <div class="block stat-block">
-          <div class="bk">PEAK UL</div>
+          <div class="micro-label">mbit/s / найденный поток</div>
+        </section>
+
+        <section class="block stat-block">
+          <div class="bk">PEAK UL / ВЫБРОС</div>
           <div class="v-lg magenta" id="peak-ul">--</div>
-        </div>
-        <div class="block mini-data">
-          <div class="bk">STREAM ID</div>
+          <div class="micro-label">mbit/s / обратный сигнал</div>
+        </section>
+
+        <section class="block glyph-block">
+          <div class="bk">STREAM ID / ПАСПОРТ УСТРОЙСТВА</div>
           <div class="mono-sm" id="stream-id">---</div>
-          <div class="bk" style="margin-top:6px">PROTOCOL</div>
-          <div class="mono-sm">HTTPS/TLS1.3</div>
-        </div>
+          <div class="glyph-grid" aria-hidden="true">
+            <span>КУ</span><span>⍟</span><span>▰</span><span>КЮ</span><span>⌬</span><span>ЦАХ</span>
+          </div>
+        </section>
       </aside>
 
-      <!-- CENTER -->
       <section class="center-a">
         <div class="viewport">
-          <!-- RETICLE -->
-          <svg class="reticle" viewBox="0 0 400 400">
-            <circle cx="200" cy="200" r="180" stroke="rgba(0,229,255,0.25)" stroke-width="1" fill="none"/>
-            <circle cx="200" cy="200" r="140" stroke="rgba(0,229,255,0.2)" stroke-width="1" fill="none" stroke-dasharray="2 4"/>
-            <circle cx="200" cy="200" r="100" stroke="rgba(0,229,255,0.15)" stroke-width="1" fill="none"/>
-            <line x1="200" y1="0" x2="200" y2="400" stroke="rgba(0,229,255,0.15)" stroke-width="1"/>
-            <line x1="0" y1="200" x2="400" y2="200" stroke="rgba(0,229,255,0.15)" stroke-width="1"/>
-            <circle cx="200" cy="200" r="4" fill="#00e5ff"/>
+          <div class="viewport-frame" aria-hidden="true">
+            <span class="corner c1"></span>
+            <span class="corner c2"></span>
+            <span class="corner c3"></span>
+            <span class="corner c4"></span>
+          </div>
+          <div class="radar" aria-hidden="true">
+            <span class="radar-sweep"></span>
+            <span class="radar-ring r1"></span>
+            <span class="radar-ring r2"></span>
+            <span class="radar-ring r3"></span>
+            <span class="radar-dot d1"></span>
+            <span class="radar-dot d2"></span>
+            <span class="radar-dot d3"></span>
+          </div>
+          <canvas id="tunnel" class="tunnel" aria-hidden="true"></canvas>
+          <svg class="reticle" viewBox="0 0 400 400" aria-hidden="true">
+            <circle cx="200" cy="200" r="180" stroke="rgba(255, 179, 71, 0.28)" stroke-width="1" fill="none"/>
+            <circle cx="200" cy="200" r="140" stroke="rgba(255, 179, 71, 0.18)" stroke-width="1" fill="none" stroke-dasharray="2 4"/>
+            <circle cx="200" cy="200" r="100" stroke="rgba(255, 209, 102, 0.18)" stroke-width="1" fill="none"/>
+            <line x1="200" y1="0" x2="200" y2="400" stroke="rgba(255, 179, 71, 0.16)" stroke-width="1"/>
+            <line x1="0" y1="200" x2="400" y2="200" stroke="rgba(255, 179, 71, 0.16)" stroke-width="1"/>
+            <path d="M160 200h24M188 188v24M212 200v24M200 176v24" stroke="rgba(255, 209, 102, 0.75)" stroke-width="2" fill="none"/>
+            <circle cx="200" cy="200" r="4" fill="#ff8a32"/>
           </svg>
-          <!-- CENTER DATA -->
           <div class="reticle-data">
-          <div class="r-big" id="main">--</div>
-          <div class="r-big magenta" id="main-ul">--</div>
-          <div class="r-unit">MBIT/S</div>
+            <div class="r-label">REAL CHANNEL / ТРАКТ ПЛЮКА</div>
+            <div class="r-big" id="main">--</div>
+            <div class="r-big magenta" id="main-ul">--</div>
+            <div class="r-unit">MBIT/S</div>
             <div class="r-sub bytes-hide" id="bytes-disp">0 MB / 25 MB</div>
           </div>
-          <!-- TUNNEL CANVAS -->
-          <canvas id="tunnel" class="tunnel"></canvas>
         </div>
 
-        <!-- WAVEFORM -->
         <div class="wave-panel" id="wave-panel">
-          <canvas id="wave" height="80"></canvas>
+          <div class="wave-head">
+            <span>OSCILLOSCOPE / ПУЛЬС КАНАЛА</span>
+            <span class="wave-code">▰ ⌁ ▱</span>
+          </div>
+          <canvas id="wave" height="80" aria-hidden="true"></canvas>
           <div class="wave-inf">
-            <span class="live"></span>
+            <span><span class="live"></span>LIVE</span>
             <span class="mono-xs" id="scope-v">0.00 MBIT/S</span>
           </div>
         </div>
 
-        <!-- RUN BUTTON -->
-        <button class="run-btn" id="run">
-          <span class="chevron">&#9656;</span>
-          <span class="lbl" id="run-lbl">INITIALIZE LINK</span>
+        <button class="run-btn" id="run" type="button">
+          <span class="run-core">КУ</span>
+          <span class="lbl" id="run-lbl">ЗАПУСТИТЬ ПЕРЕДАЧУ</span>
         </button>
       </section>
 
-      <!-- RIGHT COLUMN -->
       <aside class="col right-a">
-        <div class="block sys-block">
-          <div class="bk">SYSTEMS</div>
+        <section class="block sys-block">
+          <div class="bk">MECHANICAL BARS / ШКАЛЫ</div>
           <div class="bar-item">
             <span>DL</span>
             <div class="bar"><div class="fill cyan" id="b-eng" style="width:0%"></div></div>
+            <b class="bar-code">▰</b>
           </div>
           <div class="bar-item">
             <span>UL</span>
             <div class="bar"><div class="fill magenta" id="b-ul" style="width:0%"></div></div>
+            <b class="bar-code">◬</b>
           </div>
           <div class="bar-item">
             <span>SIG</span>
             <div class="bar"><div class="fill cyan" id="b-sys" style="width:0%"></div></div>
+            <b class="bar-code">⍟</b>
           </div>
           <div class="bar-item">
             <span>JIT</span>
             <div class="bar"><div class="fill cyan" id="b-wpn" style="width:0%"></div></div>
+            <b class="bar-code">⌬</b>
           </div>
           <div class="bar-item">
             <span>QLTY</span>
             <div class="bar"><div class="fill magenta" id="b-fuel" style="width:0%"></div></div>
+            <b class="bar-code">▱</b>
           </div>
-        </div>
-<div class="block nav-block">
-           <div class="bk">NAVIGATION</div>
-           <div class="kv"><span>SYS</span><strong id="geo-country">---</strong></div>
-           <div class="kv"><span>CITY</span><strong id="geo-city">---</strong></div>
-           <div class="kv"><span>ISP</span><strong id="geo-org">---</strong></div>
-           <div class="kv mono"><span>IPv4</span><strong id="geo-ip4">---</strong></div>
-           <div class="kv mono"><span>IPv6</span><strong id="geo-ip6">---</strong></div>
-           <div class="kv mono"><span>ASN</span><strong id="geo-asn">---</strong></div>
-           <div class="kv mono"><span>COORD</span><strong id="geo-coord">---</strong></div>
-         </div>
-        <div class="block gauge-block combo">
+        </section>
+
+        <section class="block nav-block">
+          <div class="bk">NAVIGATION / КАРТА ПЛЮКА</div>
+          <div class="kv"><span>SYS</span><strong id="geo-country">---</strong></div>
+          <div class="kv"><span>CITY</span><strong id="geo-city">---</strong></div>
+          <div class="kv"><span>ISP</span><strong id="geo-org">---</strong></div>
+          <div class="kv mono"><span>IPv4</span><strong id="geo-ip4">---</strong></div>
+          <div class="kv mono"><span>IPv6</span><strong id="geo-ip6">---</strong></div>
+          <div class="kv mono"><span>ASN</span><strong id="geo-asn">---</strong></div>
+          <div class="kv mono"><span>COORD</span><strong id="geo-coord">---</strong></div>
+        </section>
+
+        <section class="block gauge-block combo">
+          <div class="bk">MECHANICAL PANEL / ПРИБОРЫ</div>
           <div class="gauge-row">
             <div class="circular-gauge">
               <svg viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="50" stroke="rgba(0,229,255,0.2)" stroke-width="8" fill="none"/>
-                <circle cx="60" cy="60" r="50" stroke="#00e5ff" stroke-width="8" fill="none"
+                <circle cx="60" cy="60" r="50" stroke="rgba(255, 179, 71, 0.18)" stroke-width="8" fill="none"/>
+                <circle cx="60" cy="60" r="50" stroke="#ffb347" stroke-width="8" fill="none"
                         stroke-dasharray="314" stroke-dashoffset="314" id="gauge-ring" transform="rotate(-90 60 60)"/>
               </svg>
               <div class="gauge-val" id="gauge-pct">0%</div>
@@ -155,21 +192,30 @@
             </div>
             <div class="circular-gauge">
               <svg viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="50" stroke="rgba(255,0,255,0.2)" stroke-width="8" fill="none"/>
-                <circle cx="60" cy="60" r="50" stroke="#ff00ff" stroke-width="8" fill="none"
+                <circle cx="60" cy="60" r="50" stroke="rgba(255, 91, 56, 0.18)" stroke-width="8" fill="none"/>
+                <circle cx="60" cy="60" r="50" stroke="#ff5b38" stroke-width="8" fill="none"
                         stroke-dasharray="314" stroke-dashoffset="314" id="gauge-ring-ul" transform="rotate(-90 60 60)"/>
               </svg>
               <div class="gauge-val" id="gauge-pct-ul">0%</div>
               <div class="gauge-lbl">UL</div>
             </div>
           </div>
-        </div>
-      </aside>
-    </main>
+        </section>
 
+        <section class="block sensor-block">
+          <div class="bk">LIFE SENSORS / ДАТЧИКИ</div>
+          <div class="sensor-grid">
+            <span>⏣</span><span>▰</span><span>⍟</span><span>⌁</span><span>◬</span><span>⌬</span>
+          </div>
+          <div class="sensor-row"><span>TEMP</span><strong id="sensor-temp">---</strong></div>
+          <div class="sensor-row"><span>DUST</span><strong id="sensor-dust">---</strong></div>
+          <div class="sensor-row"><span>WATER</span><strong id="sensor-water">---</strong></div>
+          <div class="sensor-row"><span>FORECAST</span><strong id="sensor-forecast">---</strong></div>
+        </section>
+      </aside>
     </main>
   </div>
 
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>

@@ -32,6 +32,10 @@
   const elGeoIp6 = q('geo-ip6');
   const elGeoAsn = q('geo-asn');
   const elGeoCoord = q('geo-coord');
+  const elSensorTemp = q('sensor-temp');
+  const elSensorDust = q('sensor-dust');
+  const elSensorWater = q('sensor-water');
+  const elSensorForecast = q('sensor-forecast');
   const elGaugePct = q('gauge-pct');
   const elGaugeRing = q('gauge-ring');
   const elGaugePctUl = q('gauge-pct-ul');
@@ -77,6 +81,12 @@ const sid = Array.from({ length: 4 }, () =>
     elDate.textContent = now.toISOString().slice(0, 10).replace(/-/g, '.');
   }, 1000);
 
+  const styles = getComputedStyle(document.documentElement);
+  const gridColor = styles.getPropertyValue('--grid').trim() || 'rgba(255,179,71,0.08)';
+  const ringColor = styles.getPropertyValue('--ring').trim() || 'rgba(255,138,50,0.32)';
+  const waveColor = styles.getPropertyValue('--cyan').trim() || '#ffb347';
+  const fillWave = styles.getPropertyValue('--fill').trim() || 'rgba(255,179,71,0.08)';
+
   /* background canvas */
   (function bg() {
     const c = q('bg');
@@ -91,12 +101,12 @@ const sid = Array.from({ length: 4 }, () =>
       t += 0.003; ctx.clearRect(0, 0, w, h);
       const gap = 40;
 
-      ctx.strokeStyle = 'rgba(0, 229, 255, 0.05)';
+      ctx.strokeStyle = gridColor;
       ctx.lineWidth = 1;
       for (let x = 0; x < w; x += gap) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
       for (let y = 0; y < h; y += gap) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
 
-      ctx.strokeStyle = 'rgba(180, 77, 255, 0.1)';
+      ctx.strokeStyle = ringColor;
       for (let x = 0; x < w; x += gap) {
         const off = Math.sin(t + x * 0.01) * 22;
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + off, h); ctx.stroke();
@@ -131,7 +141,7 @@ const sid = Array.from({ length: 4 }, () =>
       const alpha = active ? 0.5 - progress * 0.4 : 0.15 - progress * 0.1;
       tctx.beginPath();
       tctx.arc(cx, cy, Math.max(1, r), 0, Math.PI * 2);
-      tctx.strokeStyle = `rgba(0, 229, 255, ${alpha})`;
+      tctx.strokeStyle = ringColor;
       tctx.lineWidth = 1;
       tctx.stroke();
     }
@@ -148,33 +158,61 @@ const sid = Array.from({ length: 4 }, () =>
   const wVals = [];
 
   function resizeWave() {
-    const r = wave.getBoundingClientRect();
-    wave.width = r.width;
-    wave.height = 80;
+    const width = wave.clientWidth || wave.getBoundingClientRect().width || 680;
+    const height = 80;
+    const dpr = window.devicePixelRatio || 1;
+    wave.width = Math.floor(width * dpr);
+    wave.height = Math.floor(height * dpr);
+    wctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
   window.addEventListener('resize', resizeWave);
   resizeWave();
 
   function drawWave() {
-    const w = wave.width, h = wave.height;
+    const w = wave.clientWidth || wave.getBoundingClientRect().width || 680;
+    const h = 80;
+    const values = wVals.slice(-120);
     wctx.clearRect(0, 0, w, h);
-    const rawMax = Math.max(...wVals.slice(-40), 1);
-    const maxVal = Math.max(rawMax, 5);
-    const scale = (h - 6) / maxVal;
-    wctx.strokeStyle = 'rgba(0, 229, 255, 0.55)';
-    wctx.lineWidth = 1.2;
-    wctx.beginPath();
-    for (let i = 0; i < wVals.length; i++) {
-      const x = (i / (wVals.length - 1)) * w;
-      const y = h - 4 - (wVals[i] * scale);
-      if (i === 0) wctx.moveTo(x, y); else wctx.lineTo(x, y);
+
+    wctx.strokeStyle = 'rgba(255,179,71,0.08)';
+    wctx.lineWidth = 1;
+    for (let x = 0; x <= w; x += 36) {
+      wctx.beginPath();
+      wctx.moveTo(x, 0);
+      wctx.lineTo(x, h);
+      wctx.stroke();
     }
+
+    if (!values.length) {
+      wctx.strokeStyle = 'rgba(255,179,71,0.25)';
+      wctx.beginPath();
+      wctx.moveTo(0, h / 2);
+      wctx.lineTo(w, h / 2);
+      wctx.stroke();
+      return;
+    }
+
+    const finite = values.filter(Number.isFinite);
+    const rawMax = finite.length ? Math.max(...finite) : 0;
+    const maxVal = Math.max(rawMax, 5);
+    const scale = (h - 12) / maxVal;
+    wctx.strokeStyle = waveColor;
+    wctx.lineWidth = 1.4;
+    wctx.beginPath();
+    values.forEach((v, i) => {
+      const y = h - 6 - (Number.isFinite(v) ? v : 0) * scale;
+      const x = values.length === 1 ? w / 2 : (i / (values.length - 1)) * w;
+      if (i === 0) wctx.moveTo(x, y); else wctx.lineTo(x, y);
+    });
     wctx.stroke();
-    wctx.fillStyle = 'rgba(0, 229, 255, 0.08)';
-    wctx.lineTo(((wVals.length - 1) / (wVals.length - 1)) * w, h);
-    wctx.lineTo(0, h);
-    wctx.closePath();
-    wctx.fill();
+
+    if (values.length > 1) {
+      wctx.fillStyle = fillWave;
+      wctx.lineTo(w, h - 4);
+      wctx.lineTo(0, h - 4);
+      wctx.closePath();
+      wctx.fill();
+    }
   }
 
   function tickWave() {
@@ -204,9 +242,7 @@ const sid = Array.from({ length: 4 }, () =>
   }
 
   /* force validation: measure-only + invalid inputs + ml = versionISH preventor; skip real API calls */
-  function runValidation() {
-    console.log('[metadata] no external data sent from runValidation');
-  }
+  function runValidation() {}
 
 /* geo */
    async function initGeo(timeout = 3000) {
@@ -217,6 +253,8 @@ const sid = Array.from({ length: 4 }, () =>
      let org = null;
      let asn = null;
      let coord = null;
+     let lat = null;
+     let lon = null;
 
      const endpoints = [
        { url: 'https://free.freeipapi.com/api/json', parse: d => ({
@@ -229,9 +267,12 @@ const sid = Array.from({ length: 4 }, () =>
        }) },
      ];
 
-     const results = await Promise.allSettled(
-       endpoints.map(ep => dlAsync(ep.url, { mode: 'cors', cache: 'no-store' }, timeout).then(res => res ? res.json() : null).then(data => data ? ep.parse(data) : null))
-     );
+      const results = await timeoutPromise(
+        Promise.allSettled(
+          endpoints.map(ep => dlAsync(ep.url, { mode: 'cors', cache: 'no-store' }, timeout).then(res => res ? res.json() : null).then(data => data ? ep.parse(data) : null))
+        ),
+        timeout
+      ).catch(() => []);
 
      for (const r of results) {
        if (r.status !== 'fulfilled' || !r.value) continue;
@@ -241,13 +282,21 @@ const sid = Array.from({ length: 4 }, () =>
          if (altIp.includes(':')) ipv6 = altIp;
          else ipv4 = altIp;
        }
-       if (parsed.city && !city) {
-         city = parsed.city;
-         country = parsed.country;
-         org = parsed.org;
-         asn = parsed.asn;
-         coord = parsed.lat && parsed.lon ? `${parsed.lat}, ${parsed.lon}` : null;
-       }
+        if (parsed.city && !city) {
+          city = parsed.city;
+          country = parsed.country;
+          org = parsed.org;
+          asn = parsed.asn;
+        }
+        if (parsed.lat && parsed.lon && !lat) {
+          const parsedLat = parseFloat(parsed.lat);
+          const parsedLon = parseFloat(parsed.lon);
+          if (Number.isFinite(parsedLat) && Number.isFinite(parsedLon)) {
+            lat = parsedLat;
+            lon = parsedLon;
+            coord = `${parsedLat.toFixed(3)}, ${parsedLon.toFixed(3)}`;
+          }
+        }
      }
 
 // Update UI with all values
@@ -261,7 +310,80 @@ const sid = Array.from({ length: 4 }, () =>
       elContacts.textContent = (ipv4 || ipv6) ? '1 NODE' : 'AWAITING';
       elLinkStatus.textContent = (ipv4 || ipv6) ? 'ONLINE' : 'SEARCHING';
       elLinkStatus.className = (ipv4 || ipv6) ? 'ok' : '';
+      return { ip: ipv4 || ipv6, city, country, org, asn, coord, lat, lon };
     }
+
+  function dustLevel(temp, humidity, wind) {
+    const t = Number.isFinite(temp) ? temp : 0;
+    const h = Number.isFinite(humidity) ? humidity : 0;
+    const w = Number.isFinite(wind) ? wind : 0;
+    const score = w * 1.4 + Math.max(0, t - 30) * 1.6 + Math.max(0, 35 - h) * 0.7;
+    if (score >= 70) return 'HIGH';
+    if (score >= 38) return 'MID';
+    return 'LOW';
+  }
+
+  function waterLevel(precip, probability) {
+    const p = probability === null || probability === undefined ? 0 : probability;
+    const precipVal = Number.isFinite(precip) ? precip : 0;
+    const score = precipVal * 20 + p;
+    if (score >= 75) return 'HIGH';
+    if (score >= 35) return 'MID';
+    return 'LOW';
+  }
+
+  function resetSensors() {
+    if (elSensorTemp) elSensorTemp.textContent = '---';
+    if (elSensorDust) elSensorDust.textContent = '---';
+    if (elSensorWater) elSensorWater.textContent = '---';
+    if (elSensorForecast) elSensorForecast.textContent = '---';
+  }
+
+async function initWeather(geo, timeout = 4500) {
+     if (!elSensorTemp || !elSensorDust || !elSensorWater || !elSensorForecast) return;
+
+     // prefer lat,lon over city name (more reliable)
+     let loc = null;
+     if (geo && Number.isFinite(geo.lat) && Number.isFinite(geo.lon)) {
+       loc = `${geo.lat},${geo.lon}`;
+     } else if (geo && geo.city) {
+       loc = geo.city;
+     }
+     if (!loc) {
+       resetSensors();
+       return;
+     }
+
+const url = `https://wttr.in/${encodeURIComponent(loc)}?format=j2`;
+      const res = await dlAsync(url, { mode: 'cors', cache: 'no-store' }, timeout);
+      let data = null;
+      if (res && res.ok) {
+        try {
+          data = await res.json();
+        } catch (e) {
+          data = null;
+        }
+      }
+      if (!data) {
+        resetSensors();
+        return;
+      }
+      const current = data && data.current_condition && data.current_condition[0];
+      if (!current) {
+        resetSensors();
+        return;
+      }
+      const temp = Number(current.temp_C);
+     const humidity = Number(current.humidity);
+     const wind = Number(current.windspeedKmph);
+     const precip = Number(current.precipMM) || 0;
+     const desc = current.weatherDesc && current.weatherDesc[0] && current.weatherDesc[0].value;
+
+      elSensorTemp.textContent = Number.isFinite(temp) ? `${Math.round(temp)}°C` : '---';
+     elSensorDust.textContent = dustLevel(temp, humidity, wind);
+     elSensorWater.textContent = waterLevel(precip, 0);
+     elSensorForecast.textContent = desc ? `WTTR / ${desc.trim()}` : 'WTTR / ---';
+   }
 
   /* ping/jitter */
   function wait(ms) { return new Promise((r) => setTimeout(r, ms)); }
@@ -332,7 +454,6 @@ const sid = Array.from({ length: 4 }, () =>
   }
 
   async function runDL() {
-    console.log('[DL] runDL called');
     if (elMainUl) elMainUl.textContent = '--';
     if (elMain) elMain.textContent = '--';
     if (elBytes) elBytes.classList.remove('bytes-hide');
@@ -384,7 +505,6 @@ const sid = Array.from({ length: 4 }, () =>
           if (elScopeV) elScopeV.textContent = mbps.toFixed(2) + ' MBIT/S';
           lastMb = mbps;
           if (t > 0.25 && bytes > 50 * 1024) elMain.textContent = mbps.toFixed(2);
-          console.log('[DL][raw]', mbps.toFixed(2), 'Mbps | bytes', bytes, '| t', t.toFixed(2), 's');
         }
 
         const progress = Math.min(100, (bytes / totalSize) * 100);
@@ -399,9 +519,12 @@ const sid = Array.from({ length: 4 }, () =>
           setBar(elBarQlty, progress);
         }
 
-        if (t > 0.5) {
-          if (mbps > peak) peak = mbps;
-          elPeak.textContent = peak.toFixed(2);
+        if (t > 0) {
+          if (mbps > peak) {
+            peak = mbps;
+            mbpsPeak = Math.max(mbpsPeak, peak);
+            elPeak.textContent = peak.toFixed(2);
+          }
           samples.push(mbps);
         }
       }
@@ -442,7 +565,6 @@ const sid = Array.from({ length: 4 }, () =>
   }
 
 async function runUL() {
-  console.log('[UL] runUL called');
   if (elMainUl) elMainUl.textContent = '--';
   if (elMain) elMain.textContent = dlLast || '0.00';
   if (elPeakUl) elPeakUl.textContent = '--';
@@ -478,7 +600,6 @@ async function runUL() {
       if (elBytes) elBytes.textContent = (loaded / 1e6).toFixed(1) + ' MB / ' + (UL_SIZE / (1024 * 1024)).toFixed(0) + ' MB';
 
       if (loaded >= UL_SIZE && !settled) {
-        console.log('[UL] upload complete via onprogress');
         clearTimeout(timer);
         settled = true;
         const total = (now - start) / 1000;
@@ -506,29 +627,24 @@ async function runUL() {
             ulPeak = mbps;
             elPeakUl.textContent = ulPeak.toFixed(2);
           }
-          console.log('[UL][raw]', mbps.toFixed(2), 'Mbps | loaded', loaded, '| t', t.toFixed(2), 's');
         }
       }
     };
 
     const timer = setTimeout(() => {
-      console.log('[UL] timer timeout, aborting');
       timedOut = true;
       xhr.abort();
       settle(() => reject(new Error('UL_TIMEOUT')))();
     }, 30000);
 
     xhr.onload = () => {
-      console.log('[UL] onload fired', 'status:', xhr.status, 'timedOut:', timedOut, 'settled already:', settled);
       clearTimeout(timer);
       if (settled) {
-        console.log('[UL] onload ignored, already resolved via onprogress');
         return;
       }
       settled = true;
       const total = (lastTime - start) / 1000;
       const avgMbps = total > 0 ? (lastLoaded * 8) / (total * 1e6) : 0;
-      console.log('[UL] resolve via onload (using last progress)', avgMbps.toFixed(2));
       elMainUl.textContent = avgMbps.toFixed(2);
       elMain.textContent = dlLast || '0.00';
       if (elBytes) elBytes.classList.add('bytes-hide');
@@ -536,18 +652,16 @@ async function runUL() {
     };
 
     xhr.onerror = () => {
-      console.log('[UL] onerror fired', 'settled:', settled);
       clearTimeout(timer);
+      settle(() => reject(new Error('UL_ERROR')));
     };
 
     xhr.onabort = () => {
-      console.log('[UL] onabort fired', 'timedOut:', timedOut, 'settled:', settled);
       clearTimeout(timer);
+      if (!timedOut) settle(() => reject(new Error('UL_ABORTED')));
     };
 
-    xhr.onloadend = () => {
-      console.log('[UL] onloadend', 'timedOut:', timedOut, 'settled:', settled);
-    };
+    xhr.onloadend = () => {};
 
     xhr.send(payload);
   });
@@ -555,18 +669,17 @@ async function runUL() {
 
   /* run */
   btnRun.addEventListener('click', async () => {
-    console.log('[run] click, busy=', busy);
     if (busy) return;
     busy = true;
     btnRun.disabled = true;
-    lblRun.textContent = 'PROCESSING';
-    setDebug('WAIT INIT_GEO');
+    lblRun.textContent = 'СЧИТЫВАНИЕ';
+    //setDebug('WAIT INIT_GEO');
     if (elMain) elMain.textContent = '--';
     if (elMainUl) elMainUl.textContent = '--';
-if (elPeakUl) elPeakUl.textContent = '--';
-     ulSamples.length = 0;
-     ulEma = 0;
-     ulPeak = 0;
+    if (elPeakUl) elPeakUl.textContent = '--';
+    ulSamples.length = 0;
+    ulEma = 0;
+    ulPeak = 0;
     elPing.textContent = '--';
     elJitter.textContent = '--';
     elPeak.textContent = '--';
@@ -579,42 +692,36 @@ if (elPeakUl) elPeakUl.textContent = '--';
     setGauge(0);
     setGauge(0, elGaugeRingUl, elGaugePctUl);
     if (elWavePanel) elWavePanel.classList.remove('wave-live');
-elScopeV.textContent = '0.00 MBIT/S';
-     elGeoCountry.textContent = '---';
-     elGeoCity.textContent = '---';
-     elGeoOrg.textContent = '---';
-     elGeoIp4.textContent = '---';
-     elGeoIp6.textContent = '---';
-     elGeoAsn.textContent = '---';
-     elGeoCoord.textContent = '---';
-     elContacts.textContent = 'AWAITING';
+    if (elScopeV) elScopeV.textContent = '0.00 MBIT/S';
+    elGeoCountry.textContent = '---';
+    elGeoCity.textContent = '---';
+    elGeoOrg.textContent = '---';
+    elGeoIp4.textContent = '---';
+    elGeoIp6.textContent = '---';
+    elGeoAsn.textContent = '---';
+    elGeoCoord.textContent = '---';
+    resetSensors();
+    elContacts.textContent = 'AWAITING';
 
     try {
-      console.log('[run] step 1: initGeo');
-      await initGeo();
-      console.log('[run] step 1 done');
-
+      const geo = await initGeo();
+      await initWeather(geo);
       await wait(250);
 
       try {
-      console.log('[run] step 2: computeJitter');
-        setDebug('WAIT PING/JITTER');
-      const { avgPing, jitter } = await computeJitter();
+       // setDebug('WAIT PING/JITTER');
+        const { avgPing, jitter } = await computeJitter();
         pingStore = avgPing;
         jitterStore = jitter;
         elPing.textContent = avgPing.toFixed(0);
         elJitter.textContent = jitter.toFixed(1);
-        console.log('[run] step 2 done', 'ping=', avgPing.toFixed(0), 'jitter=', jitter.toFixed(1));
       } catch (e) {
-        console.log('[run] step 2 failed:', e && e.message);
         pingStore = 0;
         jitterStore = 0;
       }
 
-if (elWavePanel) elWavePanel.classList.add('wave-live');
-       console.log('[run] step 3: runDL');
-       const dl = await runDL();
-      console.log('[run] step 3 done', 'dl=', dl.avg.toFixed(2), 'source=', dl.source);
+      if (elWavePanel) elWavePanel.classList.add('wave-live');
+      const dl = await runDL();
       elLinkStatus.textContent = 'ONLINE';
       elLinkStatus.className = 'ok';
       elMain.textContent = dl.avg.toFixed(2);
@@ -622,28 +729,23 @@ if (elWavePanel) elWavePanel.classList.add('wave-live');
       dlLast = dl.avg.toFixed(2);
 
       try {
-      const ulAvg = await runUL();
-      elMainUl.textContent = ulAvg.toFixed(2);
-          console.log('[run] step 4 done', 'ul=', ulAvg.toFixed(2));
-        } catch (eUl) {
-          console.log('[run] step 4 failed:', eUl && eUl.message);
-          // DL already succeeded; keep UL error state from runUL
-        }
+        const ulAvg = await runUL();
+        elMainUl.textContent = ulAvg.toFixed(2);
+      } catch (eUl) {
+        // DL already succeeded; keep UL error state from runUL
+      }
 
-      console.log('[run] complete');
       elMain.textContent = dl.avg.toFixed(2);
       setGauge(100);
     } catch (e) {
-      console.log('[run] outer catch:', e && e.message);
-      lblRun.textContent = 'RETRY';
+      lblRun.textContent = 'ПОВТОР';
       elLinkStatus.textContent = 'ERROR';
       elLinkStatus.className = 'err';
       elContacts.textContent = '---';
     } finally {
-      console.log('[run] finally, busy=false');
       busy = false;
       btnRun.disabled = false;
-      lblRun.textContent = 'INITIALIZE LINK';
+      lblRun.textContent = 'ЗАПУСТИТЬ ПЕРЕДАЧУ';
     }
   });
 
