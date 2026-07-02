@@ -1,0 +1,40 @@
+{
+        admin off
+
+        log {
+                level ERROR
+        }
+}
+
+:80 {
+redir https://{$SELF_MASK_DOMAIN}{uri} permanent
+}
+
+:{$SELF_MASK_PORT} {
+        encode gzip
+        header {
+                -Server
+                X-Content-Type-Options "nosniff"
+                X-Frame-Options "SAMEORIGIN"
+                X-XSS-Protection "1; mode=block"
+        }
+
+        handle /download* {
+                reverse_proxy 127.0.0.1:8080
+        }
+
+        handle /upload* {
+                reverse_proxy 127.0.0.1:8080
+        }
+
+        handle {
+                root * /var/www/html
+                try_files {path} /index.html
+                header Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+                file_server
+        }
+}
+
+
+
+

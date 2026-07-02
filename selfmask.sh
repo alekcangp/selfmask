@@ -198,8 +198,8 @@ setup_iptables_redirect() {
 cleanup_iptables_redirect() {
     local target_port="$1"
     [ "$target_port" = "443" ] && return 0
-    iptables -t nat -D PREROUTING -p tcp --dport 443 -j REDIRECT --to-port "$target_port" 2>/dev/null || true
-    iptables -t nat -D OUTPUT -p tcp --dport 443 -o lo -j REDIRECT --to-port "$target_port" 2>/dev/null || true
+    while iptables -t nat -D PREROUTING -p tcp --dport 443 -j REDIRECT --to-port "$target_port" 2>/dev/null; do true; done
+    while iptables -t nat -D OUTPUT -p tcp --dport 443 -o lo -j REDIRECT --to-port "$target_port" 2>/dev/null; do true; done
 }
 
 generate_self_signed_cert() {
@@ -341,12 +341,14 @@ for port in "${tls_ports[@]}"; do
     iptables -t nat -I OUTPUT 1 -p tcp --dport 443 -o lo -j REDIRECT --to-port "$port" 2>/dev/null || true
 done
 
+set +e
 "$ACME_HOME/acme.sh" --cron --home "$ACME_HOME" > /dev/null 2>&1
 renew_exit=$?
+set -e
 
 for port in "${tls_ports[@]}"; do
-    iptables -t nat -D PREROUTING -p tcp --dport 443 -j REDIRECT --to-port "$port" 2>/dev/null || true
-    iptables -t nat -D OUTPUT -p tcp --dport 443 -o lo -j REDIRECT --to-port "$port" 2>/dev/null || true
+    while iptables -t nat -D PREROUTING -p tcp --dport 443 -j REDIRECT --to-port "$port" 2>/dev/null; do true; done
+    while iptables -t nat -D OUTPUT -p tcp --dport 443 -o lo -j REDIRECT --to-port "$port" 2>/dev/null; do true; done
 done
 
 exit $renew_exit

@@ -1,0 +1,42 @@
+services:
+  caddy:
+    image: caddy:2.11.4
+    container_name: caddy-selfmask
+    restart: unless-stopped
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - /opt/caddy/html:/var/www/html
+      - ./logs:/var/log/caddy
+      - ./ssl:/etc/caddy/ssl:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:9443:9443"
+      - "80:80"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  upload-server:
+    image: node:22-alpine
+    container_name: upload-server
+    restart: unless-stopped
+    volumes:
+      - ./server.js:/app/server.js:ro
+    working_dir: /app
+    command: node server.js
+    ports:
+      - "127.0.0.1:8080:8080"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  caddy_data:
+  caddy_config:
